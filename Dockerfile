@@ -1,16 +1,45 @@
-# 使用精简镜像，镜像体积从 1.2G 下降为约 400M，提高启动效率，同时升级到 Python 3.13.x 提高 20% 以上性能
-FROM python:3.13-slim-bullseye
+# AKShare FastAPI Service Dockerfile
+FROM python:3.12-slim
 
-# 升级 pip 到最新版
-RUN pip install --upgrade pip
+# 设置工作目录
+WORKDIR /app
 
-# 新增 gunicorn 安装，提升并发和并行能力
-RUN pip install --no-cache-dir akshare fastapi uvicorn gunicorn -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host=mirrors.aliyun.com  --upgrade
-RUN pip install --no-cache-dir aktools -i https://pypi.org/simple --upgrade
+# 设置环境变量
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1 \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PYTHONPATH=/app:/app/api
 
-# 设置工作目录方便启动
-ENV APP_HOME=/usr/local/lib/python3.13/site-packages/aktools
-WORKDIR $APP_HOME
+# 安装系统依赖
+RUN apt-get update && apt-get install -y \
+    gcc \
+    g++ \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
 
-# 默认启动 gunicorn 服务
-CMD ["gunicorn", "--bind", "0.0.0.0:8080", "main:app", "-k", "uvicorn.workers.UvicornWorker"]
+# 复制依赖文件
+COPY api/requirements.txt .
+
+# 安装 Python 依赖
+RUN pip install --no-cache-dir -r requirements.txt
+
+# 复制应用代码
+COPY api /app/api
+
+# 创建日志目录
+RUN mkdir -p /app/api/logs
+
+# 设置工作目录为 api
+WORKDIR /app/api
+
+# 暴露端口
+EXPOSE 8000
+
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/health || exit 1
+
+# 启动命令
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
+

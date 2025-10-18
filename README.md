@@ -43,6 +43,25 @@ pip install akshare --upgrade
 pip install akshare -i http://mirrors.aliyun.com/pypi/simple/ --trusted-host=mirrors.aliyun.com  --upgrade
 ```
 
+### Docker Deployment (Local API Service)
+
+快速部署 AKShare API 服务到本地 Docker 容器：
+
+```powershell
+# Windows (PowerShell)
+.\deploy-local.ps1
+
+# Linux/Mac
+chmod +x deploy-local.sh && ./deploy-local.sh
+```
+
+部署后访问：
+- **API 文档**: http://localhost:8000/docs (开发环境已启用)
+- **健康检查**: http://localhost:8000/health
+- **默认 Token**: `dev-token-12345678`
+
+详细说明请查看 [API 服务完整指南](AKSHARE_API_GUIDE.md)
+
 ### PR
 
 Please check out [Documentation](https://akshare.akfamily.xyz/contributing.html) if you

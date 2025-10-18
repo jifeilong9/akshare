@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   akshare-api:
     build:
@@ -11,20 +9,21 @@ services:
       - "8000:8000"
     environment:
       # 基础配置
-      - ENVIRONMENT=production
+      - ENVIRONMENT=development
       - HOST=0.0.0.0
       - PORT=8000
-      - WORKERS=4
+      - WORKERS=1
       
       # Token 认证 (请修改为你的 token)
-      - API_TOKENS=your-secret-token-here,another-token-here
+      # List 类型需要使用 JSON 格式数组
+      - API_TOKENS=["dev-token-12345678","local-test-token"]
       - TOKEN_HEADER_NAME=X-API-Token
       
       # CORS 配置
-      - CORS_ORIGINS=*
+      - CORS_ORIGINS=["*"]
       
       # 可信主机
-      - ALLOWED_HOSTS=*
+      - ALLOWED_HOSTS=["*"]
       
       # 速率限制
       - RATE_LIMIT_ENABLED=true
@@ -44,15 +43,17 @@ services:
     
     volumes:
       # 挂载日志目录
-      - ./logs:/app/logs
+      - ./api/logs:/app/api/logs
+      # 挂载代码目录支持热重载 (开发环境)
+      - ./api:/app/api
     
     # 健康检查
     healthcheck:
-      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
       interval: 30s
-      timeout: 3s
+      timeout: 10s
       retries: 3
-      start_period: 5s
+      start_period: 10s
     
     # 资源限制
     deploy:
