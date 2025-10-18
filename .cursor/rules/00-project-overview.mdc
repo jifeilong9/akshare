@@ -1,0 +1,52 @@
+---
+alwaysApply: true
+---
+
+# AKShare 项目概述
+
+## 项目简介
+
+AKShare 是一个基于 Python 的开源财经数据接口库,用于获取股票、期货、期权、基金、债券、外汇、加密货币等金融产品的量价数据、基本面数据和另类数据。
+
+- 项目地址: https://github.com/akfamily/akshare
+- 官方文档: https://akshare.akfamily.xyz/
+- Python 版本要求: >= 3.9 (推荐 3.12)
+- 许可证: MIT License
+
+## 核心理念
+
+- **简洁易用**: 一行代码即可获取数据
+- **可扩展性**: 易于与其他应用程序集成
+- **原始数据**: 提供基于可信数据源的原始数据,由用户自行加工
+
+## 项目结构
+
+```
+akshare/
+├── __init__.py          # 主入口,导出所有公共接口
+├── stock/               # 股票相关数据接口
+├── fund/                # 基金相关数据接口
+├── bond/                # 债券相关数据接口
+├── futures/             # 期货相关数据接口
+├── option/              # 期权相关数据接口
+├── index/               # 指数相关数据接口
+├── forex/               # 外汇相关数据接口
+├── crypto/              # 加密货币相关数据接口
+├── economic/            # 宏观经济数据接口
+├── utils/               # 工具函数
+├── data/                # 数据文件和 JS 脚本
+└── ...                  # 其他金融数据模块
+```
+
+## 主要依赖
+
+- pandas: 数据处理
+- requests/aiohttp: HTTP 请求
+- beautifulsoup4/lxml: HTML 解析
+- py-mini-racer/mini-racer: JavaScript 执行
+- tqdm: 进度条显示
+- openpyxl/xlrd: Excel 文件处理
+
+## 代码规范
+
+项目使用 [Ruff](https://github.com/astral-sh/ruff) 进行代码格式化和检查,配置在 [pyproject.toml](mdc:pyproject.toml) 中。

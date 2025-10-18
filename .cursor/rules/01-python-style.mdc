@@ -1,0 +1,126 @@
+---
+globs: *.py
+---
+
+# Python 代码风格规范
+
+## 代码格式化
+
+项目使用 **Ruff** 进行代码格式化和检查,遵循以下规范:
+
+### 基本格式
+
+- **编码声明**: 每个 Python 文件顶部必须包含:
+  ```python
+  #!/usr/bin/env python
+  # -*- coding:utf-8 -*-
+  ```
+
+- **行长度**: 最大 88 字符 (与 Black 一致)
+- **缩进**: 4 个空格
+- **引号**: 使用双引号 `"` 而非单引号
+- **行尾**: 自动检测并使用适当的行尾符号
+
+### 文档字符串
+
+每个函数都必须包含详细的文档字符串,使用以下格式:
+
+```python
+def function_name(param1: str, param2: int = 10) -> pd.DataFrame:
+    """
+    功能简短描述
+    数据来源链接(如果适用)
+    :param param1: 参数1说明
+    :type param1: str
+    :param param2: 参数2说明
+    :type param2: int
+    :return: 返回值说明
+    :rtype: pandas.DataFrame
+    """
+```
+
+### 文件头部注释
+
+每个模块文件应包含:
+
+```python
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+"""
+Date: YYYY/MM/DD HH:MM
+Desc: 模块功能简短描述
+数据来源链接
+"""
+```
+
+## 命名规范
+
+- **函数名**: 使用小写字母和下划线,如 `stock_zh_a_hist()`
+- **变量名**: 使用小写字母和下划线,如 `temp_df`, `data_json`
+- **常量名**: 使用大写字母和下划线,如 `MAX_RETRY`
+- **类名**: 使用驼峰命名法,如 `StockData`
+
+## 类型注解
+
+- 函数参数应包含类型注解
+- 函数返回值应包含类型注解
+- 常见类型:
+  - `str`: 字符串
+  - `int`: 整数
+  - `float`: 浮点数
+  - `pd.DataFrame`: Pandas DataFrame
+  - `Dict[str, Any]`: 字典
+
+## 导入顺序
+
+1. 标准库导入 (如 `import json`, `import time`)
+2. 第三方库导入 (如 `import pandas as pd`, `import requests`)
+3. 本地模块导入 (如 `from akshare.utils import ...`)
+
+每组之间用空行分隔。
+
+## 错误处理
+
+- 尽可能处理常见的网络请求错误
+- 使用 `pd.to_numeric(..., errors="coerce")` 处理数据类型转换
+- 使用 `pd.to_datetime(..., errors="coerce")` 处理日期转换
+
+## 常用模式
+
+### HTTP 请求
+
+```python
+import requests
+
+url = "https://api.example.com/data"
+params = {"key": "value"}
+r = requests.get(url, params=params)
+data_json = r.json()
+```
+
+### DataFrame 处理
+
+```python
+import pandas as pd
+
+# 列重命名
+temp_df.rename(columns={"old_name": "新名称"}, inplace=True)
+
+# 类型转换
+temp_df["列名"] = pd.to_numeric(temp_df["列名"], errors="coerce")
+temp_df["日期"] = pd.to_datetime(temp_df["日期"], errors="coerce").dt.date
+
+# 数据合并
+big_df = pd.concat(objs=[big_df, temp_df], ignore_index=True)
+```
+
+### 进度条使用
+
+```python
+from akshare.utils.tqdm import get_tqdm
+
+tqdm = get_tqdm()
+for item in tqdm(iterable, leave=False):
+    # 处理逻辑
+    pass
+```

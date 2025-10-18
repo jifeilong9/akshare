@@ -1,0 +1,187 @@
+---
+description: 贡献代码和提交 Pull Request 的指南
+---
+
+# 贡献指南
+
+## 贡献流程
+
+详细指南请参考 [CONTRIBUTING.md](mdc:CONTRIBUTING.md)。
+
+### 1. Fork 和 Clone
+
+```bash
+# Fork 项目到你的 GitHub 账户
+# 然后 clone 到本地
+git clone https://github.com/your-username/akshare.git
+cd akshare
+```
+
+### 2. 创建开发分支
+
+```bash
+git checkout -b feature/your-feature-name
+```
+
+分支命名规范:
+- `feature/xxx` - 新功能
+- `fix/xxx` - Bug 修复
+- `docs/xxx` - 文档更新
+- `refactor/xxx` - 代码重构
+
+### 3. 开发环境设置
+
+```bash
+# 创建虚拟环境
+python -m venv venv
+
+# 激活虚拟环境
+# Windows
+venv\Scripts\activate
+# Linux/Mac
+source venv/bin/activate
+
+# 安装开发依赖
+pip install -r requirements-dev.txt
+pip install -e .
+```
+
+### 4. 代码开发
+
+遵循项目的代码规范:
+- 查看 [01-python-style.mdc](mdc:.cursor/rules/01-python-style.mdc)
+- 查看 [02-api-development.mdc](mdc:.cursor/rules/02-api-development.mdc)
+
+### 5. 代码格式化
+
+项目使用 Ruff 进行代码格式化:
+
+```bash
+# 检查代码风格
+ruff check .
+
+# 自动修复问题
+ruff check --fix .
+
+# 格式化代码
+ruff format .
+```
+
+配置文件: [pyproject.toml](mdc:pyproject.toml)
+
+### 6. 测试
+
+确保你的代码能够正常运行:
+
+```python
+# 在文件末尾添加简单测试
+if __name__ == "__main__":
+    result = your_function()
+    print(result)
+```
+
+运行测试:
+```bash
+python -m akshare.module.your_file
+```
+
+### 7. 提交代码
+
+```bash
+# 添加修改的文件
+git add .
+
+# 提交,使用清晰的提交信息
+git commit -m "feat: 添加 xxx 数据接口"
+```
+
+提交信息格式:
+- `feat: xxx` - 新功能
+- `fix: xxx` - Bug 修复
+- `docs: xxx` - 文档更新
+- `style: xxx` - 代码格式调整
+- `refactor: xxx` - 代码重构
+- `test: xxx` - 测试相关
+- `chore: xxx` - 构建/工具相关
+
+### 8. 推送并创建 PR
+
+```bash
+# 推送到你的 fork
+git push origin feature/your-feature-name
+```
+
+然后在 GitHub 上创建 Pull Request:
+1. 前往 https://github.com/akfamily/akshare
+2. 点击 "Pull requests" → "New pull request"
+3. 选择你的分支
+4. 填写 PR 描述,说明:
+   - 改动内容
+   - 相关 Issue 编号(如有)
+   - 测试情况
+   - 截图或示例(如适用)
+
+## 贡献类型
+
+### 报告 Bug
+
+- 搜索是否已有类似 Issue
+- 提供详细的错误信息和复现步骤
+- 包含环境信息: Python 版本、操作系统等
+
+### 建议新功能
+
+- 说明功能的用途和必要性
+- 提供数据源链接
+- 描述期望的接口设计
+
+### 修复 Bug
+
+- 引用相关 Issue 编号
+- 说明问题原因和修复方案
+- 添加测试确保问题解决
+
+### 添加新接口
+
+参考 [02-api-development.mdc](mdc:.cursor/rules/02-api-development.mdc)
+
+步骤:
+1. 确认数据源可靠性和合法性
+2. 实现数据获取函数
+3. 在对应模块的 `__init__.py` 导出
+4. 在主 `__init__.py` 添加导出
+5. 编写接口文档
+6. 测试接口功能
+
+### 改进文档
+
+参考 [03-documentation.mdc](mdc:.cursor/rules/03-documentation.mdc)
+
+- 修正错别字
+- 补充示例代码
+- 更新过时信息
+- 改进文档结构
+
+## 代码审查
+
+提交 PR 后:
+1. 维护者会审查代码
+2. 可能会提出修改建议
+3. 根据反馈进行修改
+4. 审查通过后会合并到主分支
+
+## 注意事项
+
+1. **数据来源合法性**: 确保数据源允许爬取和使用
+2. **代码质量**: 遵循项目代码规范,使用 Ruff 格式化
+3. **向后兼容**: 不要破坏现有接口的功能
+4. **文档完整**: 新增接口必须包含完整文档
+5. **学术用途**: 数据仅供学术研究,需在文档中注明
+
+## 获取帮助
+
+- GitHub Issues: https://github.com/akfamily/akshare/issues
+- 文档: https://akshare.akfamily.xyz/
+- 邮箱: albertandking@gmail.com
+
+感谢你对 AKShare 的贡献! 🎉

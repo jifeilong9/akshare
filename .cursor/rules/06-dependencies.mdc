@@ -1,0 +1,273 @@
+---
+description: 项目依赖管理和常用库使用指南
+---
+
+# 依赖管理
+
+## 核心依赖
+
+项目的核心依赖定义在 [requirements.txt](mdc:requirements.txt) 和 [setup.py](mdc:setup.py) 中。
+
+### 必需依赖
+
+| 库名 | 版本要求 | 用途 |
+|------|----------|------|
+| pandas | >=0.25 | 数据处理和分析 |
+| requests | >=2.22.0 | HTTP 请求 |
+| aiohttp | >=3.11.13 | 异步 HTTP 请求 |
+| beautifulsoup4 | >=4.9.1 | HTML 解析 |
+| lxml | >=4.2.1 | XML/HTML 解析 |
+| html5lib | >=1.0.1 | HTML5 解析 |
+| openpyxl | >=3.0.3 | Excel 文件读写 |
+| xlrd | >=1.2.0 | Excel 文件读取 |
+| tqdm | >=4.43.0 | 进度条显示 |
+| urllib3 | >=1.25.8 | URL 处理 |
+| jsonpath | >=0.82 | JSON 数据提取 |
+| tabulate | >=0.8.6 | 表格格式化 |
+| decorator | >=4.4.2 | 装饰器工具 |
+| nest_asyncio | >=1.6.0 | 嵌套异步支持 |
+
+### JavaScript 执行引擎
+
+根据操作系统不同,使用不同的 JS 引擎:
+
+- **非 Linux 系统**: `mini-racer>=0.12.4`
+- **Linux 系统**: `py-mini-racer>=0.6.0` 和 `akracer>=0.0.13`
+
+在代码中导入:
+```python
+import py_mini_racer
+```
+
+## 常用库使用指南
+
+### pandas
+
+```python
+import pandas as pd
+
+# 创建 DataFrame
+df = pd.DataFrame(data)
+
+# 读取 HTML 表格
+df = pd.read_html(url)[0]
+
+# 读取 CSV
+df = pd.read_csv("data.csv", encoding="utf-8")
+
+# 读取 Excel
+df = pd.read_excel("data.xlsx", sheet_name="Sheet1")
+
+# 日期处理
+df["日期"] = pd.to_datetime(df["日期"])
+
+# 数值处理
+df["价格"] = pd.to_numeric(df["价格"], errors="coerce")
+```
+
+### requests
+
+```python
+import requests
+
+# GET 请求
+r = requests.get(url, params=params, headers=headers, timeout=10)
+
+# POST 请求
+r = requests.post(url, json=data, headers=headers)
+
+# 获取响应
+text = r.text  # 文本内容
+json_data = r.json()  # JSON 数据
+content = r.content  # 二进制内容
+
+# 状态码
+r.status_code
+r.raise_for_status()  # 检查错误
+```
+
+### aiohttp (异步请求)
+
+```python
+import aiohttp
+import asyncio
+
+async def fetch_data():
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, params=params) as response:
+            return await response.json()
+
+# 运行异步函数
+data = asyncio.run(fetch_data())
+```
+
+### BeautifulSoup
+
+```python
+from bs4 import BeautifulSoup
+
+html = """<html>...</html>"""
+soup = BeautifulSoup(html, "lxml")
+
+# 查找元素
+element = soup.find("div", class_="data")
+elements = soup.find_all("tr")
+
+# 提取文本
+text = element.text.strip()
+
+# 提取属性
+href = element.get("href")
+```
+
+### lxml
+
+```python
+from lxml import etree
+
+# 解析 HTML
+html = etree.HTML(html_string)
+
+# XPath 查询
+elements = html.xpath("//table[@class='data']/tr")
+
+# 提取文本
+text = element.xpath("string(.)").strip()
+```
+
+### tqdm (进度条)
+
+项目中使用自定义的 tqdm 包装:
+
+```python
+from akshare.utils.tqdm import get_tqdm
+
+tqdm = get_tqdm()
+
+for item in tqdm(items, leave=False, desc="处理中"):
+    process(item)
+```
+
+### jsonpath
+
+```python
+import jsonpath
+
+data = {"users": [{"name": "Alice", "age": 30}]}
+
+# 提取数据
+names = jsonpath.jsonpath(data, "$.users[*].name")
+# 结果: ['Alice']
+```
+
+### py-mini-racer (JavaScript 执行)
+
+```python
+import py_mini_racer
+
+# 创建 JS 上下文
+ctx = py_mini_racer.MiniRacer()
+
+# 执行 JS 代码
+ctx.eval("var x = 10;")
+result = ctx.eval("x * 2")  # 20
+
+# 调用 JS 函数
+ctx.eval("""
+function add(a, b) {
+    return a + b;
+}
+""")
+result = ctx.call("add", 5, 3)  # 8
+```
+
+## 开发依赖
+
+开发和测试需要的额外依赖在 [requirements-dev.txt](mdc:requirements-dev.txt) 中定义。
+
+```bash
+pip install -r requirements-dev.txt
+```
+
+常见开发工具:
+- **ruff**: 代码格式化和检查
+- **pytest**: 单元测试
+- **sphinx**: 文档生成
+
+## 版本管理
+
+### 添加新依赖
+
+1. 在 `requirements.txt` 添加依赖:
+   ```
+   new-package>=1.0.0
+   ```
+
+2. 在 `setup.py` 的 `install_requires` 添加:
+   ```python
+   install_requires=[
+       # ... existing packages
+       "new-package>=1.0.0",
+   ],
+   ```
+
+3. 更新文档说明新依赖的用途
+
+### 版本号规范
+
+使用语义化版本号:
+- `>=1.0.0` - 大于等于 1.0.0
+- `==1.0.0` - 精确版本
+- `~=1.0.0` - 兼容版本 (1.0.x)
+- `>=1.0.0,<2.0.0` - 版本范围
+
+### 依赖冲突处理
+
+如遇到依赖冲突:
+
+1. 检查版本兼容性
+2. 尝试升级相关包
+3. 使用 `pip list --outdated` 查看过时包
+4. 创建新的虚拟环境测试
+
+## 平台特定依赖
+
+### Windows
+
+mini-racer 在 Windows 上可能需要 Visual C++ 运行库。
+
+### Linux
+
+py-mini-racer 需要系统安装 libstdc++:
+
+```bash
+# Ubuntu/Debian
+sudo apt-get install libstdc++6
+
+# CentOS/RHEL
+sudo yum install libstdc++
+```
+
+### macOS
+
+通常无需额外配置,使用 pip 直接安装即可。
+
+## 最佳实践
+
+1. **虚拟环境**: 始终使用虚拟环境开发
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # Linux/Mac
+   venv\Scripts\activate  # Windows
+   ```
+
+2. **依赖锁定**: 对于生产环境,考虑使用 `pip freeze` 锁定版本
+   ```bash
+   pip freeze > requirements-lock.txt
+   ```
+
+3. **最小依赖**: 只添加必需的依赖,避免依赖膨胀
+
+4. **定期更新**: 定期更新依赖以获取安全补丁和新特性
+
+5. **测试兼容性**: 在添加或更新依赖后运行完整测试

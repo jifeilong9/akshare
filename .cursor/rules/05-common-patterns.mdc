@@ -1,0 +1,321 @@
+---
+description: AKShare 项目中的常用代码模式和最佳实践
+---
+
+# 常用代码模式
+
+## HTTP 请求模式
+
+### 基本 GET 请求
+
+```python
+import requests
+
+url = "https://api.example.com/data"
+params = {
+    "symbol": "000001",
+    "start": "20200101",
+}
+headers = {
+    "User-Agent": "Mozilla/5.0 ...",
+}
+
+r = requests.get(url, params=params, headers=headers)
+data_json = r.json()
+```
+
+### POST 请求
+
+```python
+import requests
+
+url = "https://api.example.com/query"
+data = {
+    "query": "stock_data",
+    "symbol": "000001",
+}
+
+r = requests.post(url, json=data)
+result = r.json()
+```
+
+### 异步请求 (aiohttp)
+
+```python
+import asyncio
+import aiohttp
+import pandas as pd
+
+async def fetch_data(session, url, params):
+    async with session.get(url, params=params) as response:
+        return await response.json()
+
+async def get_multiple_data():
+    async with aiohttp.ClientSession() as session:
+        tasks = []
+        for symbol in ["000001", "000002", "000003"]:
+            params = {"symbol": symbol}
+            task = fetch_data(session, url, params)
+            tasks.append(task)
+        
+        results = await asyncio.gather(*tasks)
+        return results
+```
+
+## 数据处理模式
+
+### DataFrame 基本操作
+
+```python
+import pandas as pd
+
+# 创建 DataFrame
+df = pd.DataFrame(data_list)
+
+# 列重命名
+df.rename(
+    columns={
+        "old_col1": "新列1",
+        "old_col2": "新列2",
+    },
+    inplace=True,
+)
+
+# 选择特定列
+df = df[["新列1", "新列2", "新列3"]]
+
+# 重置索引
+df.reset_index(drop=True, inplace=True)
+```
+
+### 数据类型转换
+
+```python
+# 转换为数值类型
+df["价格"] = pd.to_numeric(df["价格"], errors="coerce")
+
+# 转换为日期类型
+df["日期"] = pd.to_datetime(df["日期"], errors="coerce")
+
+# 转换为日期对象 (去除时间)
+df["日期"] = pd.to_datetime(df["日期"]).dt.date
+
+# 转换百分比字符串
+df["涨跌幅"] = df["涨跌幅"].str.strip("%")
+df["涨跌幅"] = pd.to_numeric(df["涨跌幅"], errors="coerce")
+```
+
+### 数据清洗
+
+```python
+# 删除重复行
+df.drop_duplicates(inplace=True)
+
+# 删除空值行
+df.dropna(inplace=True)
+
+# 填充空值
+df.fillna(0, inplace=True)
+
+# 替换特定值
+df.replace({"--": None, "": None}, inplace=True)
+
+# 排序
+df.sort_values(by="日期", ascending=True, inplace=True)
+```
+
+### 数据合并
+
+```python
+# 纵向合并 (添加行)
+big_df = pd.concat(objs=[df1, df2, df3], ignore_index=True)
+
+# 横向合并 (添加列)
+merged_df = pd.merge(
+    left=df1,
+    right=df2,
+    on="股票代码",
+    how="left"  # left, right, inner, outer
+)
+```
+
+## 分页数据获取模式
+
+### 基于页码的分页
+
+```python
+from akshare.utils.tqdm import get_tqdm
+
+def get_paginated_data() -> pd.DataFrame:
+    url = "https://api.example.com/data"
+    
+    # 获取总页数
+    params = {"page": 1, "pageSize": 100}
+    r = requests.get(url, params=params)
+    data_json = r.json()
+    total_pages = data_json.get("totalPages", 1)
+    
+    big_df = pd.DataFrame()
+    tqdm = get_tqdm()
+    
+    for page in tqdm(range(1, total_pages + 1), leave=False):
+        params["page"] = page
+        r = requests.get(url, params=params)
+        data_json = r.json()
+        temp_df = pd.DataFrame(data_json["data"])
+        
+        if big_df.empty:
+            big_df = temp_df
+        else:
+            big_df = pd.concat(objs=[big_df, temp_df], ignore_index=True)
+    
+    return big_df
+```
+
+### 基于日期范围的分页
+
+```python
+def get_data_by_date_range(start_date: str, end_date: str) -> pd.DataFrame:
+    from datetime import datetime, timedelta
+    
+    start = datetime.strptime(start_date, "%Y%m%d")
+    end = datetime.strptime(end_date, "%Y%m%d")
+    
+    big_df = pd.DataFrame()
+    current_date = start
+    
+    while current_date <= end:
+        date_str = current_date.strftime("%Y%m%d")
+        temp_df = get_single_day_data(date_str)
+        big_df = pd.concat(objs=[big_df, temp_df], ignore_index=True)
+        current_date += timedelta(days=1)
+    
+    return big_df
+```
+
+## JavaScript 执行模式
+
+对于需要执行 JavaScript 的数据源:
+
+```python
+import py_mini_racer
+
+# 读取 JS 文件
+with open("akshare/data/script.js", "r", encoding="utf-8") as f:
+    js_code = f.read()
+
+# 创建 JS 上下文
+ctx = py_mini_racer.MiniRacer()
+ctx.eval(js_code)
+
+# 执行 JS 函数
+encrypted_data = "xxx"
+decrypted_data = ctx.call("decrypt", encrypted_data)
+```
+
+## HTML 解析模式
+
+### BeautifulSoup 解析
+
+```python
+from bs4 import BeautifulSoup
+import requests
+
+url = "https://example.com/data.html"
+r = requests.get(url)
+r.encoding = "utf-8"
+
+soup = BeautifulSoup(r.text, "lxml")
+
+# 查找表格
+table = soup.find("table", attrs={"class": "data-table"})
+
+# 提取数据
+data_list = []
+for row in table.find_all("tr")[1:]:  # 跳过表头
+    cols = row.find_all("td")
+    data_list.append({
+        "列1": cols[0].text.strip(),
+        "列2": cols[1].text.strip(),
+    })
+
+df = pd.DataFrame(data_list)
+```
+
+### pandas read_html
+
+```python
+import pandas as pd
+
+url = "https://example.com/data.html"
+
+# 读取所有表格
+tables = pd.read_html(url, encoding="utf-8")
+
+# 选择第一个表格
+df = tables[0]
+```
+
+## 错误处理模式
+
+```python
+import time
+import requests
+
+def fetch_with_retry(url, max_retries=3):
+    """带重试的请求函数"""
+    for attempt in range(max_retries):
+        try:
+            r = requests.get(url, timeout=10)
+            r.raise_for_status()  # 检查 HTTP 错误
+            return r.json()
+        except requests.exceptions.RequestException as e:
+            if attempt == max_retries - 1:
+                raise
+            time.sleep(2 ** attempt)  # 指数退避
+    return None
+```
+
+## 进度显示模式
+
+```python
+from akshare.utils.tqdm import get_tqdm
+
+def process_large_dataset(items):
+    tqdm = get_tqdm()
+    results = []
+    
+    for item in tqdm(items, leave=False, desc="处理中"):
+        result = process_item(item)
+        results.append(result)
+        # leave=False 表示完成后清除进度条
+    
+    return results
+```
+
+## 数据缓存模式
+
+```python
+import pickle
+from pathlib import Path
+
+def get_cached_data(cache_file="cache.pkl", force_refresh=False):
+    """带缓存的数据获取"""
+    cache_path = Path(cache_file)
+    
+    # 检查缓存
+    if not force_refresh and cache_path.exists():
+        with open(cache_path, "rb") as f:
+            return pickle.load(f)
+    
+    # 获取新数据
+    data = fetch_data_from_api()
+    
+    # 保存缓存
+    with open(cache_path, "wb") as f:
+        pickle.dump(data, f)
+    
+    return data
+```
+
+这些模式是 AKShare 项目中最常用的代码结构,遵循这些模式可以保持代码风格的一致性。

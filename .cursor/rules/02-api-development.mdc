@@ -1,0 +1,180 @@
+---
+description: 开发新的数据接口时的指南
+---
+
+# 数据接口开发指南
+
+## 接口开发流程
+
+### 1. 选择合适的模块目录
+
+根据数据类型选择对应的目录:
+- 股票数据 → `akshare/stock/`
+- 基金数据 → `akshare/fund/`
+- 债券数据 → `akshare/bond/`
+- 期货数据 → `akshare/futures/`
+- 宏观经济数据 → `akshare/economic/`
+- 其他类别同理
+
+### 2. 创建或修改对应的 Python 文件
+
+文件命名规范: `模块名_数据源.py`
+
+例如:
+- `bond_em.py` (东方财富网债券数据)
+- `fund_sina.py` (新浪基金数据)
+- `stock_zh_a.py` (A股数据)
+
+### 3. 函数命名规范
+
+函数名应清晰表达数据内容和来源:
+
+```
+{资产类型}_{地区/市场}_{细分类型}_{数据源简称}
+```
+
+示例:
+- `stock_zh_a_hist()` - 中国A股历史数据
+- `bond_zh_us_rate()` - 中美国债收益率
+- `fund_em_open_fund_daily()` - 东财开放式基金日度数据
+
+### 4. 函数实现模板
+
+```python
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+"""
+Date: 2025/01/01 12:00
+Desc: 数据来源网站名称-具体栏目
+数据来源链接
+"""
+
+import pandas as pd
+import requests
+from akshare.utils.tqdm import get_tqdm
+
+
+def data_interface_name(
+    symbol: str = "000001",
+    start_date: str = "20200101",
+    end_date: str = "20231231"
+) -> pd.DataFrame:
+    """
+    数据接口功能描述
+    数据来源网站链接
+    :param symbol: 标的代码
+    :type symbol: str
+    :param start_date: 开始日期
+    :type start_date: str
+    :param end_date: 结束日期
+    :type end_date: str
+    :return: 返回数据说明
+    :rtype: pandas.DataFrame
+    """
+    # 1. 构建请求URL和参数
+    url = "https://api.example.com/data"
+    params = {
+        "symbol": symbol,
+        "startDate": start_date,
+        "endDate": end_date,
+    }
+    
+    # 2. 发送HTTP请求
+    r = requests.get(url, params=params)
+    data_json = r.json()
+    
+    # 3. 解析数据为DataFrame
+    temp_df = pd.DataFrame(data_json["data"])
+    
+    # 4. 数据清洗和格式化
+    temp_df.rename(
+        columns={
+            "date": "日期",
+            "open": "开盘",
+            "close": "收盘",
+        },
+        inplace=True,
+    )
+    
+    # 5. 数据类型转换
+    temp_df["日期"] = pd.to_datetime(temp_df["日期"]).dt.date
+    temp_df["开盘"] = pd.to_numeric(temp_df["开盘"], errors="coerce")
+    temp_df["收盘"] = pd.to_numeric(temp_df["收盘"], errors="coerce")
+    
+    return temp_df
+```
+
+## 分页数据处理
+
+对于需要分页获取的数据:
+
+```python
+def data_interface_with_pagination() -> pd.DataFrame:
+    """
+    处理分页数据的接口
+    """
+    url = "https://api.example.com/data"
+    
+    # 第一次请求获取总页数
+    params = {"page": 1, "pageSize": 500}
+    r = requests.get(url, params=params)
+    data_json = r.json()
+    total_pages = data_json["totalPages"]
+    
+    # 使用进度条循环获取所有页面
+    big_df = pd.DataFrame()
+    tqdm = get_tqdm()
+    
+    for page in tqdm(range(1, total_pages + 1), leave=False):
+        params["page"] = page
+        r = requests.get(url, params=params)
+        data_json = r.json()
+        temp_df = pd.DataFrame(data_json["data"])
+        
+        if big_df.empty:
+            big_df = temp_df
+        else:
+            big_df = pd.concat(objs=[big_df, temp_df], ignore_index=True)
+    
+    return big_df
+```
+
+## 导出接口
+
+在对应模块的 `__init__.py` 中添加导出:
+
+```python
+from akshare.module_name.file_name import function_name
+
+__all__ = [
+    "function_name",
+]
+```
+
+在主 `akshare/__init__.py` 中也需要添加导出。
+
+## 测试
+
+创建简单测试确保接口可用:
+
+```python
+if __name__ == "__main__":
+    data_df = data_interface_name()
+    print(data_df)
+```
+
+## 数据质量要求
+
+1. **列名使用中文**: 便于用户理解
+2. **日期格式统一**: 使用 `pd.to_datetime().dt.date`
+3. **数值类型正确**: 使用 `pd.to_numeric()` 转换
+4. **处理缺失值**: 使用 `errors="coerce"` 处理异常数据
+5. **保持原始数据**: 不随意过滤或修改数据内容
+
+## 注意事项
+
+- 遵守目标网站的 robots.txt 和使用条款
+- 添加适当的请求延迟,避免频繁请求
+- 处理可能的网络错误和数据异常
+- 在文档字符串中注明数据来源和更新频率
+- 数据仅供学术研究使用

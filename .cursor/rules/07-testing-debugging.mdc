@@ -1,0 +1,426 @@
+---
+description: 测试和调试 AKShare 接口的指南
+---
+
+# 测试和调试
+
+## 接口测试
+
+### 基本测试结构
+
+每个数据接口文件应包含简单的测试代码:
+
+```python
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+"""
+Date: 2025/01/01 12:00
+Desc: 模块描述
+"""
+
+import pandas as pd
+import requests
+
+
+def your_data_function() -> pd.DataFrame:
+    """
+    接口功能描述
+    """
+    # 实现代码
+    pass
+
+
+# 测试代码
+if __name__ == "__main__":
+    # 测试基本功能
+    result_df = your_data_function()
+    print(result_df)
+    
+    # 验证数据结构
+    print("\n数据形状:", result_df.shape)
+    print("\n列名:", result_df.columns.tolist())
+    print("\n数据类型:\n", result_df.dtypes)
+    
+    # 检查空值
+    print("\n空值统计:\n", result_df.isnull().sum())
+    
+    # 显示前几行
+    print("\n前5行数据:\n", result_df.head())
+```
+
+### 运行测试
+
+```bash
+# 运行特定模块测试
+python -m akshare.bond.bond_em
+
+# 或直接运行文件
+python akshare/bond/bond_em.py
+```
+
+## 数据验证
+
+### 检查数据质量
+
+```python
+def validate_dataframe(df: pd.DataFrame) -> bool:
+    """验证 DataFrame 数据质量"""
+    
+    # 1. 检查是否为空
+    if df.empty:
+        print("错误: DataFrame 为空")
+        return False
+    
+    # 2. 检查必需列
+    required_columns = ["日期", "代码", "价格"]
+    missing_cols = set(required_columns) - set(df.columns)
+    if missing_cols:
+        print(f"错误: 缺少必需列: {missing_cols}")
+        return False
+    
+    # 3. 检查数据类型
+    if not pd.api.types.is_numeric_dtype(df["价格"]):
+        print("警告: '价格' 列不是数值类型")
+    
+    # 4. 检查空值比例
+    null_ratio = df.isnull().sum() / len(df)
+    high_null_cols = null_ratio[null_ratio > 0.5]
+    if not high_null_cols.empty:
+        print(f"警告: 以下列空值超过50%:\n{high_null_cols}")
+    
+    # 5. 检查重复数据
+    duplicates = df.duplicated().sum()
+    if duplicates > 0:
+        print(f"警告: 发现 {duplicates} 行重复数据")
+    
+    return True
+
+
+# 使用验证
+if __name__ == "__main__":
+    df = your_data_function()
+    if validate_dataframe(df):
+        print("✓ 数据验证通过")
+```
+
+## 调试技巧
+
+### 1. 打印调试信息
+
+```python
+def fetch_data_with_debug(symbol: str) -> pd.DataFrame:
+    """带调试信息的数据获取"""
+    
+    print(f"[DEBUG] 开始获取数据: symbol={symbol}")
+    
+    url = "https://api.example.com/data"
+    params = {"symbol": symbol}
+    
+    print(f"[DEBUG] 请求URL: {url}")
+    print(f"[DEBUG] 请求参数: {params}")
+    
+    r = requests.get(url, params=params)
+    
+    print(f"[DEBUG] 响应状态码: {r.status_code}")
+    print(f"[DEBUG] 响应长度: {len(r.text)} 字符")
+    
+    data_json = r.json()
+    print(f"[DEBUG] JSON keys: {list(data_json.keys())}")
+    
+    df = pd.DataFrame(data_json["data"])
+    print(f"[DEBUG] DataFrame 形状: {df.shape}")
+    
+    return df
+```
+
+### 2. 保存中间数据
+
+```python
+import json
+
+def debug_save_response(url: str, params: dict, filename: str = "debug_response.json"):
+    """保存 API 响应用于调试"""
+    r = requests.get(url, params=params)
+    
+    # 保存原始响应
+    with open(filename, "w", encoding="utf-8") as f:
+        if r.headers.get("content-type", "").startswith("application/json"):
+            json.dump(r.json(), f, ensure_ascii=False, indent=2)
+        else:
+            f.write(r.text)
+    
+    print(f"响应已保存到: {filename}")
+    return r
+
+
+# 使用
+response = debug_save_response(url, params, "bond_response.json")
+```
+
+### 3. 使用 pdb 调试器
+
+```python
+import pdb
+
+def problematic_function():
+    data = fetch_data()
+    
+    # 设置断点
+    pdb.set_trace()
+    
+    # 在这里可以交互式检查变量
+    processed_data = process(data)
+    
+    return processed_data
+```
+
+常用 pdb 命令:
+- `n` (next): 执行下一行
+- `s` (step): 进入函数
+- `c` (continue): 继续执行
+- `p variable`: 打印变量值
+- `l` (list): 显示代码
+- `q` (quit): 退出调试器
+
+### 4. 异常处理和日志
+
+```python
+import logging
+import traceback
+
+# 配置日志
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('akshare_debug.log'),
+        logging.StreamHandler()
+    ]
+)
+
+logger = logging.getLogger(__name__)
+
+
+def robust_fetch_data(symbol: str) -> pd.DataFrame:
+    """带完整错误处理的数据获取"""
+    try:
+        logger.info(f"开始获取数据: {symbol}")
+        
+        url = "https://api.example.com/data"
+        params = {"symbol": symbol}
+        
+        r = requests.get(url, params=params, timeout=10)
+        r.raise_for_status()
+        
+        data_json = r.json()
+        df = pd.DataFrame(data_json["data"])
+        
+        logger.info(f"成功获取 {len(df)} 行数据")
+        return df
+        
+    except requests.exceptions.Timeout:
+        logger.error("请求超时")
+        raise
+    except requests.exceptions.RequestException as e:
+        logger.error(f"请求错误: {e}")
+        raise
+    except KeyError as e:
+        logger.error(f"数据解析错误,缺少键: {e}")
+        logger.debug(f"响应内容: {r.text[:500]}")
+        raise
+    except Exception as e:
+        logger.error(f"未知错误: {e}")
+        logger.debug(traceback.format_exc())
+        raise
+```
+
+## 常见问题排查
+
+### 1. 编码问题
+
+```python
+# 问题: 中文乱码
+r = requests.get(url)
+print(r.text)  # 乱码
+
+# 解决: 设置正确的编码
+r = requests.get(url)
+r.encoding = "utf-8"  # 或 "gbk", "gb2312"
+print(r.text)  # 正常显示
+```
+
+### 2. JSON 解析失败
+
+```python
+# 问题: r.json() 失败
+
+# 解决方案1: 检查响应内容
+r = requests.get(url)
+print("Content-Type:", r.headers.get("content-type"))
+print("响应前100字符:", r.text[:100])
+
+# 解决方案2: 使用自定义 JSON 解析
+from akshare.utils import demjson
+
+data_text = r.text.strip("var data=")  # 移除 JS 变量声明
+data_json = demjson.decode(data_text)
+```
+
+### 3. SSL 证书问题
+
+```python
+# 问题: SSL 证书验证失败
+
+# 临时解决 (不推荐用于生产)
+import urllib3
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+r = requests.get(url, verify=False)
+```
+
+### 4. 数据类型转换失败
+
+```python
+# 问题: 数值列包含非数值字符
+
+# 调试: 查看异常值
+df = pd.DataFrame({"价格": ["10.5", "11.2", "--", "12.0"]})
+print(df[pd.to_numeric(df["价格"], errors="coerce").isna()])
+
+# 解决: 先清洗再转换
+df["价格"] = df["价格"].replace(["--", "", "None"], None)
+df["价格"] = pd.to_numeric(df["价格"], errors="coerce")
+```
+
+### 5. 日期解析问题
+
+```python
+# 问题: 日期格式不统一
+
+# 调试: 查看日期格式
+print(df["日期"].unique()[:10])
+
+# 解决: 指定日期格式或使用 errors="coerce"
+df["日期"] = pd.to_datetime(df["日期"], format="%Y-%m-%d", errors="coerce")
+
+# 或让 pandas 自动推断
+df["日期"] = pd.to_datetime(df["日期"], errors="coerce")
+```
+
+## 性能测试
+
+### 测量执行时间
+
+```python
+import time
+
+def benchmark_function():
+    """测试函数执行时间"""
+    start_time = time.time()
+    
+    result = your_data_function()
+    
+    end_time = time.time()
+    elapsed_time = end_time - start_time
+    
+    print(f"执行时间: {elapsed_time:.2f} 秒")
+    print(f"数据行数: {len(result)}")
+    print(f"平均速度: {len(result)/elapsed_time:.2f} 行/秒")
+    
+    return result
+
+
+# 使用装饰器
+from functools import wraps
+
+def timer(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        end = time.time()
+        print(f"{func.__name__} 耗时: {end-start:.2f} 秒")
+        return result
+    return wrapper
+
+
+@timer
+def slow_function():
+    # 函数实现
+    pass
+```
+
+### 内存使用分析
+
+```python
+import sys
+
+def check_memory_usage(df: pd.DataFrame):
+    """检查 DataFrame 内存使用"""
+    memory_usage = df.memory_usage(deep=True)
+    total_memory = memory_usage.sum()
+    
+    print(f"总内存使用: {total_memory / 1024 / 1024:.2f} MB")
+    print("\n各列内存使用:")
+    for col, mem in memory_usage.items():
+        print(f"  {col}: {mem / 1024:.2f} KB")
+    
+    # 优化建议
+    print("\n优化建议:")
+    for col in df.columns:
+        if df[col].dtype == "object":
+            print(f"  {col}: 考虑转换为 category 类型")
+
+
+# 使用
+check_memory_usage(df)
+```
+
+## 测试数据
+
+### 创建测试数据
+
+```python
+def create_test_data() -> pd.DataFrame:
+    """创建用于测试的模拟数据"""
+    import numpy as np
+    from datetime import datetime, timedelta
+    
+    dates = pd.date_range(
+        start="2020-01-01",
+        end="2020-12-31",
+        freq="D"
+    )
+    
+    test_df = pd.DataFrame({
+        "日期": dates,
+        "代码": "000001",
+        "开盘": np.random.uniform(10, 15, len(dates)),
+        "收盘": np.random.uniform(10, 15, len(dates)),
+        "成交量": np.random.randint(1000000, 10000000, len(dates)),
+    })
+    
+    return test_df
+
+
+# 用于测试函数逻辑
+test_data = create_test_data()
+result = process_data(test_data)
+print(result)
+```
+
+## 最佳实践
+
+1. **早期测试**: 在开发接口时就开始测试
+2. **小步验证**: 每完成一个步骤就验证结果
+3. **保存样本**: 保存 API 响应样本用于离线测试
+4. **文档错误**: 记录遇到的问题和解决方案
+5. **边界测试**: 测试极端情况(空数据、大数据量等)
+6. **真实数据**: 使用真实的股票代码和日期测试
+7. **清理资源**: 测试后清理临时文件和数据
+
+## 参考资源
+
+- pandas 文档: https://pandas.pydata.org/docs/
+- requests 文档: https://requests.readthedocs.io/
+- Python 调试指南: https://docs.python.org/3/library/pdb.html
