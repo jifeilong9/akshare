@@ -1,0 +1,71 @@
+version: '3.8'
+
+services:
+  akshare-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: akshare-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      # 基础配置
+      - ENVIRONMENT=production
+      - HOST=0.0.0.0
+      - PORT=8000
+      - WORKERS=4
+      
+      # Token 认证 (请修改为你的 token)
+      - API_TOKENS=your-secret-token-here,another-token-here
+      - TOKEN_HEADER_NAME=X-API-Token
+      
+      # CORS 配置
+      - CORS_ORIGINS=*
+      
+      # 可信主机
+      - ALLOWED_HOSTS=*
+      
+      # 速率限制
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_TIMES=100
+      - RATE_LIMIT_SECONDS=60
+      
+      # 缓存配置
+      - CACHE_ENABLED=false
+      - CACHE_EXPIRE_SECONDS=300
+      
+      # 日志配置
+      - LOG_LEVEL=INFO
+      - LOG_FILE=logs/akshare_api.log
+      
+      # 数据返回配置
+      - MAX_ROWS=10000
+    
+    volumes:
+      # 挂载日志目录
+      - ./logs:/app/logs
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "python", "-c", "import requests; requests.get('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
+    
+    # 资源限制
+    deploy:
+      resources:
+        limits:
+          cpus: '2'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+# 网络配置
+networks:
+  default:
+    name: akshare-network
+

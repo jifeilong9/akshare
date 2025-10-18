@@ -6,6 +6,7 @@
 *.icls
 /_windows/
 /codestyles/
+
 # Temp
 build/
 docs/build/
@@ -13,13 +14,43 @@ docs/_build/
 dist/
 *.egg-info/
 colors
+
 # IDE
 .idea/
-# jupyter
+.vscode/
+
+# Jupyter
 .ipynb_checkpoints
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Logs
+*.log
+logs/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Data
+/data
+/tests/data
 
 #docs/source/_static/
 #docs/source/_templates/
-.DS_Store
-/data
-/tests/data

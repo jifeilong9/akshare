@@ -1,0 +1,17 @@
+# AKShare API 服务依赖
+
+# FastAPI 框架
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# AKShare 及其依赖
+akshare>=1.14.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# 其他工具
+python-multipart>=0.0.6
+python-dotenv>=1.0.0
+
